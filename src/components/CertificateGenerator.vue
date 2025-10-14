@@ -1,130 +1,187 @@
-<!-- src/components/CertificateGenerator.vue -->
 <template>
-  <div class="generator">
-    <!-- 输入区域 -->
-    <div class="input-group">
-      <label>姓名：</label>
-      <input v-model="name" placeholder="请输入姓名" />
-    </div>
-    <div class="input-group">
-      <label>部门：</label>
-      <input v-model="department" placeholder="请输入部门" />
-    </div>
-    <button @click="generateCertificate">生成证书</button>
-
-    <!-- Canvas 画布 -->
-    <div class="canvas-container">
-      <canvas ref="canvasRef"></canvas>
+  <div class="page-container">
+    <div class="card" v-if="!generated">
+      <h2>🎓 在线证书生成器</h2>
+      <div class="form-group">
+        <label>姓名：</label>
+        <input v-model="name" placeholder="请输入你的姓名" />
+      </div>
+      <div class="form-group">
+        <label>部门：</label>
+        <input v-model="department" placeholder="请输入你的部门" />
+      </div>
+      <button class="generate-btn" @click="generateCertificate">生成证书</button>
     </div>
 
-    <!-- 下载按钮 -->
-    <button @click="downloadCertificate" :disabled="!certificateGenerated">下载证书</button>
+    <transition name="fade-zoom">
+      <div v-if="generated" class="result-card">
+        <h2>🎉 证书生成成功！</h2>
+        <canvas ref="canvas" width="800" height="600"></canvas>
+        <button class="download-btn" @click="downloadImage">下载证书</button>
+        <button class="back-btn" @click="reset">返回修改</button>
+      </div>
+    </transition>
   </div>
 </template>
 
-<script>
-import { ref, onMounted } from 'vue';
+<script setup>
+import { ref } from "vue"
 
-export default {
-  name: 'CertificateGenerator',
-  setup() {
-    const name = ref('');              // 存储用户输入的姓名
-    const department = ref('');        // 存储用户输入的部门
-    const canvasRef = ref(null);       // 引用 Canvas 元素
-    const ctx = ref(null);            // Canvas 2D 上下文
-    const certificateGenerated = ref(false); // 是否已生成证书
+const name = ref("")
+const department = ref("")
+const generated = ref(false)
+const canvas = ref(null)
 
-    // 在组件挂载后获取 Canvas 2D 上下文
-    onMounted(() => {
-      if (canvasRef.value) {
-        ctx.value = canvasRef.value.getContext('2d');
-      }
-    });
-
-    // 生成证书图像：绘制背景图和文字
-    const generateCertificate = () => {
-      if (!ctx.value) return;
-      const canvas = canvasRef.value;
-      const context = ctx.value;
-
-      const img = new Image();
-      img.src = '/certificate.png';  // 证书背景图，放在 public 目录
-      img.onload = () => {
-        // 设置 Canvas 尺寸为图像尺寸
-        canvas.width = img.width;
-        canvas.height = img.height;
-
-        // 绘制背景图
-        context.clearRect(0, 0, canvas.width, canvas.height);
-        context.drawImage(img, 0, 0);
-
-        // 设置文字样式并绘制姓名和部门
-        context.fillStyle = '#000';           // 字体颜色：黑色
-        context.font = '28px serif';          // 字体大小和样式
-        context.textAlign = 'center';         // 文本居中对齐
-        context.fillText(name.value, canvas.width / 2, canvas.height / 2);           // 绘制姓名
-        context.fillText(department.value, canvas.width / 2, canvas.height / 2 + 40); // 绘制部门
-
-        certificateGenerated.value = true;
-      };
-      img.onerror = () => {
-        alert('证书背景图片加载失败！');
-      };
-    };
-
-    // 下载证书：将 Canvas 转为图片并触发下载
-    const downloadCertificate = () => {
-      if (!canvasRef.value) return;
-      const canvas = canvasRef.value;
-      const dataURL = canvas.toDataURL('image/png');
-
-      // 创建临时链接并点击实现下载
-      const link = document.createElement('a');
-      link.href = dataURL;
-      link.download = `certificate_${name.value}.png`;
-      link.click();
-    };
-
-    return {
-      name,
-      department,
-      canvasRef,
-      generateCertificate,
-      downloadCertificate,
-      certificateGenerated
-    };
+function generateCertificate() {
+  if (!name.value || !department.value) {
+    alert("请填写完整信息")
+    return
   }
-};
+
+  generated.value = true
+  setTimeout(drawCertificate, 200)
+}
+
+function drawCertificate() {
+  const ctx = canvas.value.getContext("2d")
+  const img = new Image()
+  img.src = "/certificate-placeholder.jpg" // 背景占位图，可换成你的证书模板
+  img.onload = () => {
+    ctx.drawImage(img, 0, 0, 800, 600)
+    ctx.font = "bold 36px Microsoft YaHei"
+    ctx.fillStyle = "#333"
+    ctx.textAlign = "center"
+    ctx.fillText(name.value, 400, 350)
+    ctx.font = "28px Microsoft YaHei"
+    ctx.fillText(department.value, 400, 420)
+  }
+}
+
+function downloadImage() {
+  const link = document.createElement("a")
+  link.download = `${name.value}-证书.png`
+  link.href = canvas.value.toDataURL("image/png")
+  link.click()
+}
+
+function reset() {
+  generated.value = false
+}
 </script>
 
 <style scoped>
-.generator {
+.page-container {
+  background: url('/bg-pattern.jpg') center/cover no-repeat, linear-gradient(135deg, #dfe9f3 0%, #ffffff 100%);
+  min-height: 100vh;
   display: flex;
-  flex-direction: column;
+  justify-content: center;
   align-items: center;
-  gap: 16px;
+  animation: fadeIn 1.2s ease;
 }
-.input-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+
+.card, .result-card {
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 16px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  padding: 40px 50px;
+  text-align: center;
+  transition: all 0.3s ease;
+  width: 90%;
+  max-width: 600px;
 }
-.canvas-container {
-  margin: 20px 0;
-  border: 2px solid #ccc;
+
+h2 {
+  margin-bottom: 20px;
+  color: #333;
 }
-canvas {
-  max-width: 100%;
+
+.form-group {
+  margin: 15px 0;
+  text-align: left;
 }
-button {
-  padding: 8px 16px;
-  background-color: #409eff;
-  color: #fff;
+
+label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+input {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  outline: none;
+  transition: all 0.3s;
+}
+input:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 6px rgba(0, 123, 255, 0.3);
+}
+
+.generate-btn, .download-btn, .back-btn {
+  margin-top: 20px;
+  padding: 12px 28px;
   border: none;
+  border-radius: 10px;
+  font-size: 16px;
   cursor: pointer;
+  transition: all 0.3s ease;
 }
-button:disabled {
-  background-color: #aaa;
-  cursor: not-allowed;
+
+.generate-btn {
+  background: #007bff;
+  color: #fff;
+}
+.generate-btn:hover {
+  background: #0056b3;
+}
+
+.download-btn {
+  background: #28a745;
+  color: white;
+  animation: pulse 2s infinite;
+}
+.back-btn {
+  margin-left: 10px;
+  background: #ffc107;
+  color: #333;
+}
+.back-btn:hover {
+  background: #e0a800;
+}
+
+canvas {
+  margin-top: 15px;
+  border-radius: 12px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.15);
+}
+
+/* 动画 */
+.fade-zoom-enter-active {
+  animation: zoomIn 0.8s ease;
+}
+.fade-zoom-leave-active {
+  animation: fadeOut 0.6s ease forwards;
+}
+
+@keyframes zoomIn {
+  0% { opacity: 0; transform: scale(0.9); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes fadeOut {
+  0% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.95); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 rgba(40, 167, 69, 0.6); }
+  50% { transform: scale(1.05); box-shadow: 0 0 20px rgba(40, 167, 69, 0.4); }
 }
 </style>
