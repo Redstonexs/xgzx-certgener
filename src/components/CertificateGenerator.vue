@@ -616,7 +616,7 @@ button:hover { transform: translateY(-2px); }
 }
 @font-face {
   font-family: 'FangZhengKaiTi';
-  src: url('@/assets/fonts/FangZhengKaiTiJianTi-1.ttf') format('truetype');
+  src: url('../assets/fonts/FangZhengKaiTiJianTi-1.ttf') format('truetype');
   font-display: swap;
 }
 </style>
