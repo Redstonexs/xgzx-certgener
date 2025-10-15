@@ -241,33 +241,33 @@ function renderToCanvas() {
   // 姓名处理
   const rawName = name.value ? name.value.trim() : '';
   if (!rawName) return; // 空名只绘背景
-
+  const fullName = `${rawName} 同学`;
   // 配置：根据模板调整这些参数（可微调）
   const fontFamily = `"KaiTi","STKaiti","Microsoft YaHei",serif`;
   const initialFontPx = Math.round(naturalW / 32); // 初始字号（与你现在使用的类似）
   const minFontPx = Math.max(12, Math.round(naturalW / 60)); // 最小字号阈值（以宽度相关）
-  const nameMaxWidth = naturalW * 0.1; // 姓名允许的最大宽度（占画布宽度的比率），可根据模板调整
-  const centerX = Math.round(naturalW / 6.3);
-  const baseY = Math.round(naturalH * 0.661); // 原来放姓名的中心Y
+  const nameMaxWidth = naturalW * 0.6; // 姓名允许的最大宽度（占画布宽度的比率），可根据模板调整
+  const centerX = Math.round(naturalW / 4.8);
+  const baseY = Math.round(naturalH * 0.663); // 原来放姓名的中心Y
 
   // 1) 尝试单行：先用初始字号尝试 fit
   ctx.textAlign = 'center';
   ctx.fillStyle = '#000';
 
-  let fontPx = fitFontSize(rawName, nameMaxWidth, initialFontPx, minFontPx, fontFamily);
+  let fontPx = fitFontSize(fullName, nameMaxWidth, initialFontPx, minFontPx, fontFamily);
 
   // 测试是否 fit（measureText）
   ctx.font = `normal ${fontPx}px ${fontFamily}`;
-  const wSingle = ctx.measureText(rawName).width;
+  const wSingle = ctx.measureText(fullName).width;
 
   if (wSingle <= nameMaxWidth) {
     // 单行可行 -> 直接绘制
-    ctx.fillText(rawName, centerX, baseY);
+    ctx.fillText(fullName, centerX, baseY);
     return;
   }
 
   // 2) 单行不可行 -> 尝试分两行
-  const lines = splitNameToLines(rawName);
+  const lines = splitNameToLines(fullName);
   // 二行都要 fit：为两行找合适字号（可同字号或分别调整）
   // 我们先尝试使用单行字体的一半略微放大比例
   // 先尝试相同字号（稍小）
