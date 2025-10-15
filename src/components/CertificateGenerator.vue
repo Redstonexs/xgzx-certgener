@@ -1,146 +1,558 @@
 <template>
-  <div class="certificate-container">
-    <!-- 用户输入 -->
-    <div class="inputs">
-      <label>姓名：<input v-model="name" placeholder="请输入姓名" /></label>
-      <!-- <label>部门：<input v-model="department" placeholder="请输入部门" /></label> -->
+  <div class="panel">
+    <div class="controls">
+      <label>
+        姓名：
+        <!-- 新增 input/blur/enter 事件 -->
+        <input
+          v-model="name"
+          placeholder="请输入姓名"
+          @input="onInput"
+          @blur="onBlur"
+          @keyup.enter="onEnter"
+        />
+      </label>
+
+      <button @click="downloadCertificate">下载证书</button>
     </div>
 
-    <!-- Canvas -->
-    <div class="canvas-wrapper">
-      <canvas ref="canvas"></canvas>
+    <div ref="wrapperRef" class="canvas-wrapper">
+      <canvas ref="canvasRef" :style="{ transform: canvasTransform }"></canvas>
     </div>
 
-    <!-- 下载按钮 -->
-    <button @click="downloadCertificate">下载证书</button>
+    <!-- 不在组织内提示模态 -->
+    <div v-if="showNotInList" class="modal-mask" @click.self="closeModal">
+      <div class="modal-box">
+        <h3>提示</h3>
+        <p>您输入的姓名 <strong>{{ nameDisplay }}</strong> 不在组织名单内。</p>
+        <p>若有误请检查姓名拼写或联系管理员登记。</p>
+        <div class="modal-actions">
+          <button @click="closeModal">关闭</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
-import certBg from '../assets/cert.jpg' // ✅ 正确引入图片路径
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
+// 模板图片路径（Vite 推荐写法）
+const certUrl = new URL('../assets/cert.jpg', import.meta.url).href
 
+// -------------------- 白名单（示例，替换为真实名单或改为异步请求） --------------------
+//其实这样校验非常不安全（还暴露隐私）
+//but，我懒得写后端了，整出来还不一定稳定
+const allowedNames = [
+  '马雪瑞',
+  '胡微',
+  '袭荣双',
+  '赵睿',
+  '吕欣颖',
+  '庞圣爱',
+  '张馨',
+  '郭超',
+  '李昱浩',
+  '常德润',
+  '隋佳泽',
+  '孟淳然',
+  '张钰彤',
+  '姜思莹',
+  '张恒龙',
+  '付一诺',
+  '刘宇航',
+  '庄豪森',
+  '王欣鹏',
+  '蒋宇昕',
+  '吕曼清',
+  '徐暚',
+  '曾荣兴',
+  '胡乃凤',
+  '洪钰舫',
+  '金妍伊',
+  '马钰琪',
+  '王娜',
+  '霍轶凡',
+  '张一帆',
+  '高睿涵',
+  '柳迎会',
+  '杨嘉琪',
+  '陈倩娜',
+  '吕文霞',
+  '衣姿洁',
+  '刘鑫媛',
+  '黄修正',
+  '吴承远',
+  '奉家麒',
+  '陈鹏宇',
+  '巩浩然',
+  '董家郡',
+  '林泓锦',
+  '林鸿铭',
+  '刘家源',
+  '李钦林',
+  '聊世豪',
+  '李翔',
+  '卢政宇',
+  '唐廷乐',
+  '王怀鑫',
+  '连珈弘',
+  '薄翔泽',
+  '孙楠',
+  '佟昊阳',
+  '刘啸阳',
+  '任天骄',
+  '周志昊',
+  '刘乐妍',
+  '王梓言',
+  '王铭晟',
+  '谷训行',
+  '宫士杰',
+  '冯伟恒',
+  '张紫阳',
+  '甄月圆',
+  '宋燕红',
+  '邵甜雨',
+  '李鸿阳',
+  '王策',
+  '单英祺',
+  '庞杰文',
+  '李雨宸',
+  '辛泽昊',
+  '王炳智',
+  '彭屹恒',
+  '孙维璐',
+  '梁盼盼',
+  '刘晓畅',
+  '王恺鑫',
+  '宋亚璐',
+  '宋佳茹',
+  '杨浩茹',
+  '杨在起',
+  '宋欣然',
+  '张晓晴',
+  '马承宗',
+  '谭皓澜',
+  '袁玮婧',
+  '汪乐乐',
+  '亓圣杰',
+  '林妍如',
+  '马佳慧',
+  '沈传菊',
+  '刘茹',
+  '梁桐宇',
+  '陈恬',
+  '吴明达',
+  '魏劭菲',
+  '文茜茜',
+  '韦颖希',
+  '张博轩',
+  '买地努尔·艾买尔',
+  '杨芸',
+  '李姿莹',
+  '田雨',
+  '谢雨晗',
+  '李泰瑞',
+  '杨发元',
+  '周晨欣',
+  '冉金江',
+  '范奕楠',
+  '焦润梓',
+  '黄伟伟',
+  '刘承鑫',
+  '周晴晴'
+].map(n => n.trim().toLowerCase())
+// -------------------------------------------------------------------------
+
+// refs / state
 const name = ref('')
 const department = ref('')
-const canvas = ref(null)
+const canvasRef = ref(null)
+const wrapperRef = ref(null)
 let ctx = null
-let bgImage = new Image()
-let canvasWidth = 0
-let canvasHeight = 0
+let img = null
+let naturalW = 0
+let naturalH = 0
+const canvasTransform = ref('scale(1)')
 
-// 绘制证书函数
-const drawCanvas = () => {
-  if (!ctx || !bgImage.complete) return
-  ctx.clearRect(0, 0, canvasWidth, canvasHeight)
-  ctx.drawImage(bgImage, 0, 0, canvasWidth, canvasHeight)
+// modal 控制
+const showNotInList = ref(false)
+const nameDisplay = ref('')
 
-  // 绘制文字
-  ctx.fillStyle = '#000'
-  ctx.textAlign = 'center'
-  ctx.font = 'bold 36px KaiTi'
+// 防抖 timer
+let debounceTimer = null
+const DEBOUNCE_MS = 800
 
-  // 姓名
-  ctx.fillText(name.value || '', canvasWidth / 5.76, 1125)
-  // 部门
-  ctx.font = '28px KaiTi'
-  ctx.fillText(department.value || '', canvasWidth / 2, 460)
+// 判断姓名是否在名单内
+function isNameAllowed(rawName) {
+  if (!rawName) return true
+  const normalized = rawName.trim().toLowerCase()
+  return allowedNames.includes(normalized)
 }
 
-// 页面加载时执行
-onMounted(() => {
-  const c = canvas.value
-  ctx = c.getContext('2d')
+function fitFontSize(text, maxWidth, initialPx, minPx, fontFamily) {
+  // 返回适合 maxWidth 的字号（px），不小于 minPx
+  let px = initialPx;
+  ctx.font = `${px}px ${fontFamily}`;
+  let metrics = ctx.measureText(text);
+  while (px > minPx && metrics.width > maxWidth) {
+    px = Math.max(minPx, Math.floor(px * 0.92)); // 缓慢缩小（8%步长）
+    ctx.font = `${px}px ${fontFamily}`;
+    metrics = ctx.measureText(text);
+  }
+  return px;
+}
 
-  bgImage.src = certBg
-  bgImage.onload = () => {
-    canvasWidth = bgImage.width
-    canvasHeight = bgImage.height
-    c.width = canvasWidth
-    c.height = canvasHeight
-    drawCanvas()
+function splitNameToLines(nameStr, maxCharsPerLine) {
+  // 优先按空格/断词分行；否则按字符数折中分两行
+  const s = nameStr.trim();
+  if (!s) return [];
+
+  // 如果有空格（拉丁名、带空格的中东名等），优先在空格处分割成两部分，尽量均衡字符数
+  if (/\s/.test(s)) {
+    const parts = s.split(/\s+/);
+    // 寻找一个分割点使得左右长度接近
+    let best = 1;
+    for (let i = 1; i < parts.length; i++) {
+      const left = parts.slice(0, i).join(' ');
+      const right = parts.slice(i).join(' ');
+      if (Math.abs(left.length - right.length) < Math.abs(parts.slice(0, best).join(' ').length - parts.slice(best).join(' ').length)) {
+        best = i;
+      }
+    }
+    return [parts.slice(0, best).join(' '), parts.slice(best).join(' ')];
+  }
+
+  // 无空格时（中文/无空格外文），按字符数折半
+  const len = s.length;
+  const mid = Math.ceil(len / 2);
+  // 试着在 mid 前后找一个合理的断点（避免把姓/名截断太短）
+  const left = s.slice(0, mid);
+  const right = s.slice(mid);
+  return [left, right];
+}
+
+// 渲染函数（内部像素空间）
+function renderToCanvas() {
+  if (!ctx || !img || !img.complete) return;
+  // 清空并绘制背景模板
+  ctx.clearRect(0, 0, naturalW, naturalH);
+  ctx.drawImage(img, 0, 0, naturalW, naturalH);
+
+  // 姓名处理
+  const rawName = name.value ? name.value.trim() : '';
+  if (!rawName) return; // 空名只绘背景
+
+  // 配置：根据模板调整这些参数（可微调）
+  const fontFamily = `"KaiTi","STKaiti","Microsoft YaHei",serif`;
+  const initialFontPx = Math.round(naturalW / 32); // 初始字号（与你现在使用的类似）
+  const minFontPx = Math.max(12, Math.round(naturalW / 60)); // 最小字号阈值（以宽度相关）
+  const nameMaxWidth = naturalW * 0.1; // 姓名允许的最大宽度（占画布宽度的比率），可根据模板调整
+  const centerX = Math.round(naturalW / 6.3);
+  const baseY = Math.round(naturalH * 0.661); // 原来放姓名的中心Y
+
+  // 1) 尝试单行：先用初始字号尝试 fit
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#000';
+
+  let fontPx = fitFontSize(rawName, nameMaxWidth, initialFontPx, minFontPx, fontFamily);
+
+  // 测试是否 fit（measureText）
+  ctx.font = `normal ${fontPx}px ${fontFamily}`;
+  const wSingle = ctx.measureText(rawName).width;
+
+  if (wSingle <= nameMaxWidth) {
+    // 单行可行 -> 直接绘制
+    ctx.fillText(rawName, centerX, baseY);
+    return;
+  }
+
+  // 2) 单行不可行 -> 尝试分两行
+  const lines = splitNameToLines(rawName);
+  // 二行都要 fit：为两行找合适字号（可同字号或分别调整）
+  // 我们先尝试使用单行字体的一半略微放大比例
+  // 先尝试相同字号（稍小）
+  let lineFontPx = fitFontSize(lines[0], nameMaxWidth, Math.floor(fontPx * 0.9), minFontPx, fontFamily);
+  // 对第二行也适配
+  let line2FontPx = fitFontSize(lines[1], nameMaxWidth, lineFontPx, minFontPx, fontFamily);
+
+  // 若第二行字号更小，取更小值保证两行一致视觉（可选）
+  const finalFontPx = Math.min(lineFontPx, line2FontPx);
+
+  // 如果最终字号仍小于最小阈值，考虑进一步处理：强制截断或水平缩放（这里选择截断并加省略）
+  if (finalFontPx <= minFontPx) {
+    // 截断第二行或第一行以防覆盖（简单策略：在宽度允许内截断并加省略）
+    ctx.font = `normal ${minFontPx}px ${fontFamily}`;
+    function ellipsize(text, maxW) {
+      let t = text;
+      while (t.length > 0 && ctx.measureText(t + '…').width > maxW) {
+        t = t.slice(0, -1);
+      }
+      return t + (t.length < text.length ? '…' : '');
+    }
+    const l1 = ellipsize(lines[0], nameMaxWidth);
+    const l2 = ellipsize(lines[1], nameMaxWidth);
+    const lineSpacing = Math.round(minFontPx * 1.35);
+    ctx.fillText(l1, centerX, baseY - lineSpacing / 2);
+    ctx.fillText(l2, centerX, baseY + lineSpacing / 2);
+    return;
+  }
+
+  // 绘制两行：行间距按字号比例
+  ctx.font = `normal ${finalFontPx}px ${fontFamily}`;
+  const lineSpacing = Math.round(finalFontPx * 1.4);
+  ctx.fillText(lines[0], centerX, baseY - lineSpacing / 2);
+  ctx.fillText(lines[1], centerX, baseY + lineSpacing / 2);
+}
+
+/** 在用户“完成输入”时调用：校验名单并绘制或弹模态 */
+function validateAndRender() {
+  // 关闭任何已有模态（如果用户继续输入，则应先隐藏）
+  showNotInList.value = false
+  nameDisplay.value = ''
+
+  const enteredName = name.value ? name.value.trim() : ''
+  if (!enteredName) {
+    // 若为空则仅绘制模板（不显示提示）
+    renderToCanvas()
+    return
+  }
+
+  const allowed = isNameAllowed(enteredName)
+  if (!allowed) {
+    // 若不在名单：显示模态并只绘制模板（不绘姓名）
+    nameDisplay.value = enteredName
+    showNotInList.value = true
+    // 仍先绘制背景模板
+    if (ctx && img && img.complete) {
+      ctx.clearRect(0, 0, naturalW, naturalH)
+      ctx.drawImage(img, 0, 0, naturalW, naturalH)
+    }
+    return
+  }
+
+  // 在名单内：绘制姓名
+  renderToCanvas()
+}
+
+// input 事件处理：防抖，且输入时隐藏已存在提示
+function onInput() {
+  // 每次输入时隐藏已弹的提示（用户还在改）
+  if (showNotInList.value) {
+    showNotInList.value = false
+    nameDisplay.value = ''
+  }
+  // 重置防抖计时器
+  if (debounceTimer) clearTimeout(debounceTimer)
+  debounceTimer = setTimeout(() => {
+    validateAndRender()
+    debounceTimer = null
+  }, DEBOUNCE_MS)
+}
+
+// blur / enter 事件：立即校验（用户认为已经完成）
+function onBlur() {
+  if (debounceTimer) {
+    clearTimeout(debounceTimer)
+    debounceTimer = null
+  }
+  validateAndRender()
+}
+function onEnter() {
+  if (debounceTimer) {
+    clearTimeout(debounceTimer)
+    debounceTimer = null
+  }
+  validateAndRender()
+}
+
+// 缩放与下载相关（保持原有逻辑）
+function updateScale() {
+  const wrapper = wrapperRef.value
+  const canvas = canvasRef.value
+  if (!wrapper || !canvas || !naturalW || !naturalH) return
+
+  const wrapperW = wrapper.clientWidth
+  const wrapperH = wrapper.clientHeight
+  const scale = Math.min(wrapperW / naturalW, wrapperH / naturalH, 1)
+  canvasTransform.value = `scale(${scale})`
+}
+
+function downloadCertificate() {
+  const enteredName = name.value ? name.value.trim() : ''
+  if (enteredName && !isNameAllowed(enteredName)) {
+    // 若不在名单，弹提示并阻止下载
+    nameDisplay.value = enteredName
+    showNotInList.value = true
+    return
+  }
+  const canvas = canvasRef.value
+  if (!canvas) return
+  const dataUrl = canvas.toDataURL('image/png')
+  const a = document.createElement('a')
+  a.href = dataUrl
+  a.download = `${(enteredName || 'user')}的证书.png`
+  a.click()
+}
+
+// ResizeObserver 支持
+let ro = null
+function setupResizeObservers() {
+  window.addEventListener('resize', updateScale)
+  if (window.ResizeObserver) {
+    ro = new ResizeObserver(updateScale)
+    if (wrapperRef.value) ro.observe(wrapperRef.value)
+  }
+}
+function cleanupResizeObservers() {
+  window.removeEventListener('resize', updateScale)
+  if (ro && wrapperRef.value) ro.disconnect()
+  ro = null
+}
+
+// 挂载时加载图片、初始化 canvas
+onMounted(() => {
+  const canvas = canvasRef.value
+  if (!canvas) return
+  ctx = canvas.getContext('2d')
+
+  img = new Image()
+  img.crossOrigin = 'anonymous'
+  img.src = certUrl
+  img.onload = () => {
+    naturalW = img.naturalWidth || img.width
+    naturalH = img.naturalHeight || img.height
+
+    canvas.width = naturalW
+    canvas.height = naturalH
+
+    canvas.style.transformOrigin = 'top center'
+    canvas.style.display = 'block'
+
+    // 先绘模板
+    ctx.clearRect(0, 0, naturalW, naturalH)
+    ctx.drawImage(img, 0, 0, naturalW, naturalH)
+
+    updateScale()
+    setupResizeObservers()
+  }
+  img.onerror = (e) => {
+    console.error('证书模板加载失败：', e)
   }
 })
 
-// 实时更新
-watch([name, department], drawCanvas)
+onBeforeUnmount(() => {
+  if (debounceTimer) clearTimeout(debounceTimer)
+  cleanupResizeObservers()
+})
 
-// 下载功能
-const downloadCertificate = () => {
-  const link = document.createElement('a')
-  link.download = 'certificate.png'
-  link.href = canvas.value.toDataURL('image/png')
-  link.click()
+// 关闭模态
+function closeModal() {
+  showNotInList.value = false
+  nameDisplay.value = ''
 }
 </script>
 
 <style scoped>
-.certificate-container {
-  text-align: center;
-  padding: 20px;
-  background: rgba(255, 255, 255, 0.85);
-  border-radius: 16px;
-  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.2);
-  max-width: 1000px;
-  margin: 30px auto;
-  backdrop-filter: blur(6px);
-  animation: fadeIn 1s ease;
+.panel {
+  width: 100%;
+  max-width: 980px;
+  margin: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.inputs {
-  margin-bottom: 15px;
+/* 控件区 */
+.controls {
+  width: 100%;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
 }
-
-.inputs label {
-  margin: 0 15px;
-  font-size: 18px;
+.controls label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
 }
-
-.inputs input {
-  padding: 5px 10px;
+.controls input {
+  padding: 6px 10px;
   border-radius: 6px;
-  border: 1px solid #aaa;
-  font-size: 16px;
-  outline: none;
+  border: 1px solid #bbb;
+  font-size: 14px;
 }
 
+/* 限制 wrapper 的高度（视口内完整显示） */
 .canvas-wrapper {
+  width: 100%;
+  height: calc(72vh);
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
   overflow: hidden;
+  background: rgba(255,255,255,0.02);
+  border-radius: 10px;
+  padding-top: 12px;
 }
 
 canvas {
-  max-width: 90%;
-  height: auto;
-  border-radius: 12px;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.25);
-  transition: transform 0.4s ease;
-}
-
-canvas:hover {
-  transform: scale(1.02);
+  display: block;
+  transform-origin: top center;
+  image-rendering: optimizeQuality;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.18);
+  border-radius: 8px;
 }
 
 button {
-  margin-top: 15px;
-  padding: 10px 25px;
-  font-size: 18px;
-  color: white;
-  background: linear-gradient(135deg, #007bff, #4bc0c8);
+  padding: 8px 14px;
+  margin-top: 12px;
   border: none;
   border-radius: 8px;
+  background: linear-gradient(135deg,#007bff,#4bc0c8);
+  color: #fff;
   cursor: pointer;
-  transition: background 0.3s, transform 0.3s;
+}
+button:hover { transform: translateY(-2px); }
+
+/* 模态样式 */
+.modal-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+.modal-box {
+  background: #fff;
+  padding: 18px 20px;
+  border-radius: 10px;
+  width: min(420px, 90%);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+  text-align: center;
+}
+.modal-box h3 { margin: 0 0 8px 0; }
+.modal-box p { margin: 6px 0; color: #333; }
+.modal-actions { margin-top: 12px; }
+.modal-actions button {
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: #007bff;
+  color: #fff;
+  border: none;
+  cursor: pointer;
 }
 
-button:hover {
-  background: linear-gradient(135deg, #0056b3, #2a9d8f);
-  transform: scale(1.05);
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(15px); }
-  to { opacity: 1; transform: translateY(0); }
+/* 响应式微调 */
+@media (max-width: 720px) {
+  .panel { max-width: 95%; margin: 12px; }
+  .canvas-wrapper { height: calc(68vh); }
+  .controls input { width: 140px; }
 }
 </style>

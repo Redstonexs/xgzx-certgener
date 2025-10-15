@@ -1,46 +1,35 @@
 <template>
-  <div id="app" :style="{ backgroundImage: `url(${bg})` }">
+  <!-- 直接绑定背景图，避免 document.querySelector 操作 -->
+  <div id="app" :style="bgStyle">
     <CertificateGenerator />
   </div>
 </template>
 
 <script setup>
 import CertificateGenerator from './components/CertificateGenerator.vue'
-import bg from './assets/bg2.jpg'
+import pageBg from './assets/bg2.jpg' // 确保文件存在于 src/assets
+
+// 绑定背景样式（保证 cover，无白边）
+const bgStyle = {
+  backgroundImage: `url(${pageBg})`,
+  backgroundSize: 'cover',
+  backgroundPosition: 'center center',
+  backgroundRepeat: 'no-repeat',
+  minHeight: '100vh'
+}
 </script>
 
+<!-- 不要用 scoped，这里希望背景样式能全局生效 -->
 <style>
-html,
-body,
-#app {
+html, body, #app {
   margin: 0;
   padding: 0;
   height: 100%;
   width: 100%;
 }
-
-/* ✅ 设置背景图完全覆盖页面，不留白边 */
 #app {
-  background-repeat: no-repeat;
-  background-position: center center;
-  background-size: cover; /* 关键：自动等比放大覆盖页面 */
-  background-attachment: fixed; /* 页面滚动时背景不动，可去掉 */
   display: flex;
   justify-content: center;
   align-items: center;
-}
-
-/* 可选：加个柔和遮罩让内容更清晰 */
-#app::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: rgba(255, 255, 255, 0.3); /* 半透明遮罩 */
-  z-index: 0;
-}
-
-.certificate-container {
-  position: relative;
-  z-index: 1;
 }
 </style>
