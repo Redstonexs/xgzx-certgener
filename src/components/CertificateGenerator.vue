@@ -377,22 +377,81 @@ function updateScale() {
   canvasTransform.value = `scale(${scale})`
 }
 
-function downloadCertificate() {
-  const enteredName = name.value ? name.value.trim() : ''
-  if (enteredName && !isNameAllowed(enteredName)) {
-    // 若不在名单，弹提示并阻止下载
-    nameDisplay.value = enteredName
-    showNotInList.value = true
-    return
+// 将下面函数放到你的 <script setup> 里，替换现有下载逻辑。
+// 依赖：canvasRef（ref to canvas DOM）和 name（ref 存储姓名）
+async function downloadCertificate() {
+  const canvas = canvasRef.value;
+  if (!canvas) return;
+
+  // 构建要用的中文文件名（保留中文），并做最小清理但不替换中文
+  const rawName = (name.value || '').trim() || '证书';
+  // 限制长度，避免过长带来的问题（保留中文）
+  const maxLen = 40;
+  const safeBase = rawName.length > maxLen ? rawName.slice(0, maxLen) : rawName;
+  const filename = `${safeBase}.png`;
+
+  // Helper: toBlob -> Promise
+  const blob = await new Promise(resolve => {
+    canvas.toBlob(b => resolve(b), 'image/png');
+  });
+  if (!blob) {
+    console.error('生成图片失败');
+    return;
   }
-  const canvas = canvasRef.value
-  if (!canvas) return
-  const dataUrl = canvas.toDataURL('image/png')
-  const a = document.createElement('a')
-  a.href = dataUrl
-  a.download = `${(enteredName || 'user')}的证书.png`
-  a.click()
+
+  // 首选：使用 Web Share API 分享文件（在许多移动端浏览器可保留中文名）
+  // try {
+  //   const file = new File([blob], filename, { type: blob.type });
+
+  //   // 检查能否分享文件（某些浏览器只支持 share text/url）
+  //   if (navigator.canShare && navigator.canShare({ files: [file] })) {
+  //     try {
+  //       await navigator.share({ files: [file], title: filename });
+  //       // 成功或用户取消都会返回到这里
+  //       return;
+  //     } catch (err) {
+  //       // 可能用户取消或 share 失败，继续尝试常规下载
+  //       console.warn('Web Share 失败或被取消：', err);
+  //     }
+  //   }
+  // } catch (err) {
+  //   // 某些环境创建 File 可能抛错，继续后续回退
+  //   console.warn('构建 File 或分享检测失败：', err);
+  // }
+
+  // 次选：使用 createObjectURL 与 <a download="中文名"> 触发（多数 Android/Chrome 支持中文名）
+  try {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+
+    // 设置 download 属性为中文名（很多浏览器会保留中文）
+    a.href = url;
+    a.download = filename;
+
+    // 某些浏览器需要把节点插入 DOM 才能触发下载
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    // 释放资源
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+    return;
+  } catch (err) {
+    console.warn('objectURL 下载失败，准备回退：', err);
+  }
+
+  // 最后回退：在新标签打开 Blob URL（用户可长按或保存图片），并提示用户如何保存并重命名
+  try {
+    const url2 = URL.createObjectURL(blob);
+    window.open(url2, '_blank');
+    // 可选：显示一个提示，告诉用户“长按图片 -> 保存到相册，然后可在文件或相册中重命名为：<中文名>”
+    setTimeout(() => URL.revokeObjectURL(url2), 5000);
+    return;
+  } catch (err) {
+    console.error('最终回退也失败：', err);
+  }
 }
+
 
 // ResizeObserver 支持
 let ro = null
