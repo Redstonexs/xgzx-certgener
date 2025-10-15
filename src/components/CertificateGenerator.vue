@@ -243,12 +243,12 @@ function renderToCanvas() {
   if (!rawName) return; // 空名只绘背景
   const fullName = `${rawName} 同学`;
   // 配置：根据模板调整这些参数（可微调）
-  const fontFamily = `"KaiTi", "STKaiti", serif;`;
+  const fontFamily = `"FangZhengKaiTi","KaiTi","STKaiti","Microsoft YaHei",serif`;
   const initialFontPx = Math.round(naturalW / 32); // 初始字号（与你现在使用的类似）
   const minFontPx = Math.max(12, Math.round(naturalW / 60)); // 最小字号阈值（以宽度相关）
   const nameMaxWidth = naturalW * 0.6; // 姓名允许的最大宽度（占画布宽度的比率），可根据模板调整
   const centerX = Math.round(naturalW / 4.8);
-  const baseY = Math.round(naturalH * 0.663); // 原来放姓名的中心Y
+  const baseY = Math.round(naturalH * 0.665); // 原来放姓名的中心Y
 
   // 1) 尝试单行：先用初始字号尝试 fit
   ctx.textAlign = 'center';
@@ -613,5 +613,10 @@ button:hover { transform: translateY(-2px); }
   .panel { max-width: 95%; margin: 12px; }
   .canvas-wrapper { height: calc(68vh); }
   .controls input { width: 140px; }
+}
+@font-face {
+  font-family: 'FangZhengKaiTi';
+  src: url('@/assets/fonts/FangZhengKaiTiJianTi-1.ttf') format('truetype');
+  font-display: swap;
 }
 </style>
