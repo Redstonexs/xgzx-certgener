@@ -243,7 +243,7 @@ function renderToCanvas() {
   if (!rawName) return; // 空名只绘背景
   const fullName = `${rawName} 同学`;
   // 配置：根据模板调整这些参数（可微调）
-  const fontFamily = `"KaiTi","Kaiti SC"`;
+  const fontFamily = `"KaiTi"`;
   const initialFontPx = Math.round(naturalW / 32); // 初始字号（与你现在使用的类似）
   const minFontPx = Math.max(12, Math.round(naturalW / 60)); // 最小字号阈值（以宽度相关）
   const nameMaxWidth = naturalW * 0.6; // 姓名允许的最大宽度（占画布宽度的比率），可根据模板调整
