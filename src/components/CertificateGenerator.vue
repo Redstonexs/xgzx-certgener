@@ -6,8 +6,8 @@
     </div>
 
     <div class="controls">
-      <label>
-        姓名：
+      <label class="input-container">
+        <span class="label-text">姓名：</span>
         <input
           class="name-input"
           v-model="name"
@@ -18,10 +18,9 @@
         />
       </label>
 
-      <button @click="downloadCertificate">下载证书</button>
+      <button class="download-btn" @click="downloadCertificate">下载证书</button>
     </div>
 
-    <!-- 简化结构 -->
     <div ref="wrapperRef" class="canvas-wrapper" v-if="showCertificate" aria-hidden="!showCertificate">
       <canvas 
         ref="canvasRef" 
@@ -30,7 +29,6 @@
       ></canvas>
     </div>
 
-    <!-- 不在组织内提示模态 -->
     <div v-if="showNotInList" class="modal-mask" @click.self="closeModal">
       <div class="modal-box">
         <h3>提示</h3>
@@ -195,7 +193,7 @@ function renderToCanvas() {
   const initialFontPx = Math.round(naturalW / 32)
   const minFontPx = Math.max(12, Math.round(naturalW / 60))
   const nameMaxWidth = naturalW * 0.6
-  const centerX = Math.round(naturalW / 2)
+  const centerX = Math.round(naturalW / 5)
   const baseY = Math.round(naturalH * 0.665)
 
   ctx.textAlign = 'center'
@@ -344,7 +342,7 @@ async function downloadCertificate() {
   }
 }
 
-/* 缩放管理 */
+/* 缩放管理 - 优化移动端显示 */
 function updateScale() {
   const wrapper = wrapperRef.value
   const canvas = canvasRef.value
@@ -353,9 +351,13 @@ function updateScale() {
   const wrapperW = wrapper.clientWidth
   const wrapperH = wrapper.clientHeight
   
-  const scaleX = (wrapperW - 40) / naturalW
-  const scaleY = (wrapperH - 40) / naturalH
-  const scale = Math.min(scaleX, scaleY, 1)
+  // 移动端使用更大的缩放比例
+  const isMobile = window.innerWidth <= 768
+  const margin = isMobile ? 20 : 40 // 移动端减少边距
+  
+  const scaleX = (wrapperW - margin) / naturalW
+  const scaleY = (wrapperH - margin) / naturalH
+  const scale = Math.min(scaleX, scaleY, isMobile ? 0.9 : 1) // 移动端允许稍大一些
   
   canvas.style.width = `${naturalW * scale}px`
   canvas.style.height = `${naturalH * scale}px`
@@ -461,12 +463,12 @@ function closeModal() {
   align-items: center;
   padding: 20px;
   box-sizing: border-box;
-  background: rgba(255, 255, 255, 0.92); /* 半透明白色背景提高可读性 */
+  background: rgba(255, 255, 255, 0.92);
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(10px);
   position: relative;
-  z-index: 1; /* 确保面板在背景之上 */
+  z-index: 1;
   min-height: auto;
 }
 
@@ -489,39 +491,75 @@ function closeModal() {
   color: #34495e; 
 }
 
-/* 控件区 */
+/* 控件区 - 完全重新设计布局 */
 .controls { 
-  width: 100%; 
-  display: flex; 
-  gap: 16px; 
-  align-items: center; 
-  justify-content: center; 
-  margin-bottom: 24px; 
-  flex-wrap: wrap; 
+  width: 100%;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
 }
-.controls label { 
-  display: flex; 
-  align-items: center; 
-  gap: 8px; 
-  font-size: 16px; 
+
+/* 输入框容器 - 限制宽度 */
+.input-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
   font-weight: 500;
   color: #2c3e50;
+  min-width: 0;
+  flex: 1;
+  max-width: 300px; /* 限制最大宽度 */
 }
-.controls input { 
-  padding: 10px 14px; 
-  border-radius: 8px; 
-  border: 2px solid #e1e8ed; 
-  font-size: 16px; 
-  min-width: 200px; 
-  transition: border-color 0.3s;
+
+.label-text {
+  white-space: nowrap;
+  flex-shrink: 0;
 }
-.controls input:focus {
+
+.name-input {
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 2px solid #e1e8ed;
+  font-size: 16px;
+  min-width: 0;
+  flex: 1;
+  width: 100%;
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+.name-input:focus {
   border-color: #3498db;
   outline: none;
   box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
 }
 
-/* 证书容器 - 关键修改 */
+/* 下载按钮 - 固定宽度 */
+.download-btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(135deg, #007bff, #4bc0c8);
+  color: #fff;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  transition: all 0.3s;
+  white-space: nowrap;
+  flex-shrink: 0; /* 防止按钮被压缩 */
+  min-width: 120px; /* 固定最小宽度 */
+}
+
+.download-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 123, 255, 0.3);
+}
+
+/* 证书容器 */
 .canvas-wrapper {
   width: 100%;
   min-height: 400px;
@@ -531,7 +569,7 @@ function closeModal() {
   padding: 20px;
   box-sizing: border-box;
   position: relative;
-  z-index: 2; /* 高于面板背景 */
+  z-index: 2;
 }
 
 /* 证书画布 */
@@ -540,7 +578,7 @@ function closeModal() {
   box-shadow: 0 12px 40px rgba(0,0,0,0.15), 0 0 0 1px rgba(220,180,80,0.1);
   display: block;
   max-width: 100%;
-  max-height: 70vh; /* 限制最大高度 */
+  max-height: 70vh;
   object-fit: contain;
   background: white;
 }
@@ -554,23 +592,6 @@ function closeModal() {
 
 .certificate-canvas.animated {
   animation: fadeScaleIn 420ms cubic-bezier(.2,.8,.2,1) both;
-}
-
-/* 按钮 */
-button { 
-  padding: 10px 20px; 
-  border-radius: 8px; 
-  border: none; 
-  background: linear-gradient(135deg,#007bff,#4bc0c8); 
-  color: #fff; 
-  cursor: pointer; 
-  font-size: 16px;
-  font-weight: 500;
-  transition: all 0.3s;
-}
-button:hover { 
-  transform: translateY(-2px); 
-  box-shadow: 0 6px 20px rgba(0, 123, 255, 0.3);
 }
 
 /* 模态 */
@@ -607,7 +628,7 @@ button:hover {
   cursor: pointer; 
 }
 
-/* 响应式调整 */
+/* 平板响应式调整 */
 @media (max-width: 768px) {
   .panel {
     margin: 10px;
@@ -617,40 +638,111 @@ button:hover {
   
   .canvas-wrapper {
     padding: 15px;
-    min-height: 300px;
+    min-height: 350px;
   }
   
   .certificate-canvas {
-    max-height: 60vh;
+    max-height: 75vh;
+    max-width: 95%;
   }
   
+  /* 移动端控件布局 - 关键修复 */
   .controls {
     flex-direction: column;
-    gap: 12px;
+    gap: 16px;
+    width: 100%;
+    align-items: stretch; /* 让子元素撑满宽度 */
   }
   
-  .controls input {
-    min-width: 100%;
-    max-width: 280px;
+  .input-container {
+    max-width: 100%; /* 移动端允许占满宽度 */
+    width: 100%;
+    justify-content: space-between;
   }
   
-  .title-line1 { font-size: 20px; }
+  .name-input {
+    max-width: 70%; /* 输入框占70%宽度 */
+    flex: none;
+  }
+  
+  .download-btn {
+    width: 100%;
+    max-width: 100%;
+    min-width: auto;
+  }
+  
+  .title-line1 { font-size: 22px; }
   .title-line2 { font-size: 16px; }
 }
 
+/* 手机响应式调整 */
 @media (max-width: 480px) {
   .panel {
     padding: 12px;
     margin: 8px;
+    border-radius: 10px;
   }
   
   .canvas-wrapper {
     padding: 10px;
-    min-height: 250px;
+    min-height: 300px;
   }
   
   .certificate-canvas {
-    max-height: 50vh;
+    max-height: 80vh;
+    max-width: 98%;
+    border-radius: 10px;
+  }
+  
+  .controls {
+    gap: 14px;
+  }
+  
+  .input-container {
+    font-size: 14px;
+  }
+  
+  .name-input {
+    padding: 12px 14px;
+    font-size: 16px;
+    max-width: 65%; /* 手机端输入框稍小一点 */
+  }
+  
+  .title-line1 { font-size: 20px; }
+  .title-line2 { font-size: 15px; }
+  
+  .download-btn {
+    padding: 12px 20px;
+    font-size: 16px;
+  }
+}
+
+/* 超小屏幕手机 */
+@media (max-width: 360px) {
+  .panel {
+    padding: 10px 8px;
+    margin: 5px;
+  }
+  
+  .canvas-wrapper {
+    padding: 8px;
+    min-height: 280px;
+  }
+  
+  .certificate-canvas {
+    max-height: 75vh;
+  }
+  
+  .title-line1 { font-size: 18px; }
+  .title-line2 { font-size: 14px; }
+  
+  .name-input {
+    padding: 10px 12px;
+    max-width: 60%; /* 超小屏幕输入框更小 */
+  }
+  
+  .input-container {
+    font-size: 13px;
   }
 }
 </style>
