@@ -491,7 +491,7 @@ function closeModal() {
   color: #34495e; 
 }
 
-/* 控件区 - 完全重新设计布局 */
+/* 控件区 */
 .controls { 
   width: 100%;
   display: flex;
@@ -502,34 +502,37 @@ function closeModal() {
   flex-wrap: wrap;
 }
 
-/* 输入框容器 - 限制宽度 */
+/* 输入框容器 - 增大字号并紧贴输入框 */
 .input-container {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 16px;
+  gap: 6px; /* 减少间距，让标签更贴近输入框 */
+  font-size: 18px; /* 增大字号 */
   font-weight: 500;
   color: #2c3e50;
   min-width: 0;
   flex: 1;
-  max-width: 300px; /* 限制最大宽度 */
+  max-width: 300px;
 }
 
 .label-text {
   white-space: nowrap;
   flex-shrink: 0;
+  font-size: 18px; /* 增大标签字号 */
+  font-weight: 600; /* 加粗标签文字 */
 }
 
 .name-input {
-  padding: 10px 14px;
+  padding: 12px 16px; /* 增加内边距，让输入框更高 */
   border-radius: 8px;
   border: 2px solid #e1e8ed;
-  font-size: 16px;
+  font-size: 18px; /* 增大输入框字号 */
   min-width: 0;
   flex: 1;
   width: 100%;
   box-sizing: border-box;
   max-width: 100%;
+  height: 48px; /* 固定高度，确保一致性 */
 }
 
 .name-input:focus {
@@ -538,20 +541,21 @@ function closeModal() {
   box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
 }
 
-/* 下载按钮 - 固定宽度 */
+/* 下载按钮 - 增大字号 */
 .download-btn {
-  padding: 10px 20px;
+  padding: 12px 24px; /* 增加内边距 */
   border-radius: 8px;
   border: none;
   background: linear-gradient(135deg, #007bff, #4bc0c8);
   color: #fff;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 18px; /* 增大按钮字号 */
   font-weight: 500;
   transition: all 0.3s;
   white-space: nowrap;
-  flex-shrink: 0; /* 防止按钮被压缩 */
-  min-width: 120px; /* 固定最小宽度 */
+  flex-shrink: 0;
+  min-width: 120px;
+  height: 48px; /* 与输入框高度一致 */
 }
 
 .download-btn:hover {
@@ -651,24 +655,36 @@ function closeModal() {
     flex-direction: column;
     gap: 16px;
     width: 100%;
-    align-items: stretch; /* 让子元素撑满宽度 */
+    align-items: stretch;
   }
   
   .input-container {
-    max-width: 100%; /* 移动端允许占满宽度 */
+    max-width: 100%;
     width: 100%;
-    justify-content: space-between;
+    justify-content: flex-start; /* 确保标签和输入框紧贴 */
+    gap: 8px; /* 移动端稍微增加一点间距 */
+    font-size: 20px; /* 移动端字号更大 */
+  }
+  
+  .label-text {
+    font-size: 20px; /* 移动端标签字号更大 */
+    flex-shrink: 0;
+    width: auto; /* 不固定宽度，让内容决定 */
   }
   
   .name-input {
-    max-width: 70%; /* 输入框占70%宽度 */
-    flex: none;
+    flex: 1;
+    max-width: none;
+    font-size: 20px; /* 移动端输入框字号更大 */
+    height: 52px; /* 移动端输入框更高 */
   }
   
   .download-btn {
     width: 100%;
     max-width: 100%;
     min-width: auto;
+    font-size: 20px; /* 移动端按钮字号更大 */
+    height: 52px; /* 与输入框高度一致 */
   }
   
   .title-line1 { font-size: 22px; }
@@ -699,13 +715,18 @@ function closeModal() {
   }
   
   .input-container {
-    font-size: 14px;
+    font-size: 18px; /* 小屏幕稍微减小字号 */
+    gap: 6px; /* 小屏幕减少间距 */
+  }
+  
+  .label-text {
+    font-size: 18px;
   }
   
   .name-input {
     padding: 12px 14px;
-    font-size: 16px;
-    max-width: 65%; /* 手机端输入框稍小一点 */
+    font-size: 18px;
+    height: 48px;
   }
   
   .title-line1 { font-size: 20px; }
@@ -713,7 +734,8 @@ function closeModal() {
   
   .download-btn {
     padding: 12px 20px;
-    font-size: 16px;
+    font-size: 18px;
+    height: 48px;
   }
 }
 
@@ -736,13 +758,24 @@ function closeModal() {
   .title-line1 { font-size: 18px; }
   .title-line2 { font-size: 14px; }
   
-  .name-input {
-    padding: 10px 12px;
-    max-width: 60%; /* 超小屏幕输入框更小 */
+  .input-container {
+    font-size: 16px;
+    gap: 4px; /* 超小屏幕进一步减少间距 */
   }
   
-  .input-container {
-    font-size: 13px;
+  .label-text {
+    font-size: 16px;
+  }
+  
+  .name-input {
+    padding: 10px 12px;
+    font-size: 16px;
+    height: 44px;
+  }
+  
+  .download-btn {
+    font-size: 16px;
+    height: 44px;
   }
 }
 </style>
