@@ -614,6 +614,8 @@ button:hover { transform: translateY(-2px); }
   .canvas-wrapper { height: calc(68vh); }
   .controls input { width: 140px; }
 }
+</style>
+<style>
 @font-face {
   font-family: 'FangZhengKaiTi';
   src: url('/fonts/FangZhengKaiTiJianTi-1.ttf') format('truetype');
