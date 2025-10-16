@@ -15,21 +15,32 @@ const bgStyle = {
   backgroundSize: 'cover',
   backgroundPosition: 'center center',
   backgroundRepeat: 'no-repeat',
-  minHeight: '100vh'
+  minHeight: '100vh',
+  width: '100%',
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'flex-start', // 改为 flex-start 避免居中压缩
+  padding: '20px 0' // 添加上下内边距
 }
 </script>
 
 <!-- 不要用 scoped，这里希望背景样式能全局生效 -->
 <style>
+* {
+  box-sizing: border-box;
+}
+
 html, body, #app {
   margin: 0;
   padding: 0;
   height: 100%;
   width: 100%;
 }
+
 #app {
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start; /* 改为顶部对齐 */
+  overflow-y: auto; /* 允许垂直滚动 */
 }
 </style>
