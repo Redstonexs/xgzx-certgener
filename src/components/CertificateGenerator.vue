@@ -201,6 +201,23 @@ function fitFontSize(text, maxWidth, initialPx, minPx, fontFamily) {
   }
   return px;
 }
+function waitForFont(fontName, timeoutMs = 2000) {
+  if (typeof document === 'undefined' || !document.fonts || !document.fonts.load) {
+    console.warn('[font] document.fonts not supported; will use fallback fonts')
+    return Promise.resolve(false)
+  }
+  // race between load and timeout
+  const loadPromise = document.fonts.load(`12px "${fontName}"`).then(() => {
+    return document.fonts.check(`12px "${fontName}"`)
+  }).catch(e => {
+    console.warn('[font] load error', e)
+    return false
+  })
+  const timeoutPromise = new Promise((resolve) => {
+    setTimeout(() => resolve(false), timeoutMs)
+  })
+  return Promise.race([loadPromise, timeoutPromise])
+}
 
 function splitNameToLines(nameStr, maxCharsPerLine) {
   // 优先按空格/断词分行；否则按字符数折中分两行
@@ -470,34 +487,48 @@ function cleanupResizeObservers() {
 
 // 挂载时加载图片、初始化 canvas
 onMounted(() => {
-  const canvas = canvasRef.value
-  if (!canvas) return
-  ctx = canvas.getContext('2d')
+  const canvas = canvasRef.value;
+  if (!canvas) return;
+  ctx = canvas.getContext('2d');
 
-  img = new Image()
-  img.crossOrigin = 'anonymous'
-  img.src = certUrl
-  img.onload = () => {
-    naturalW = img.naturalWidth || img.width
-    naturalH = img.naturalHeight || img.height
+  // 尝试等待字体可用（不阻塞超过 2s）
+  waitForFont('FangZhengKaiTi', 2000).then((fontOk) => {
+    console.log('[font] FangZhengKaiTi available:', fontOk);
+    // 无论 fontOk 是 true/false，继续加载图片与初始化 canvas
+    img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.src = certUrl;
+    img.onload = () => {
+      naturalW = img.naturalWidth || img.width;
+      naturalH = img.naturalHeight || img.height;
+      canvas.width = naturalW;
+      canvas.height = naturalH;
+      canvas.style.transformOrigin = 'top center';
+      canvas.style.display = 'block';
 
-    canvas.width = naturalW
-    canvas.height = naturalH
+      // 先绘模板（如果字体随后可用，再次渲染时会使用它）
+      ctx.clearRect(0, 0, naturalW, naturalH);
+      ctx.drawImage(img, 0, 0, naturalW, naturalH);
 
-    canvas.style.transformOrigin = 'top center'
-    canvas.style.display = 'block'
+      // 如果字体在后续加载完成（document.fonts.ready），再次 renderToCanvas 以确保使用字体
+      if (typeof document !== 'undefined' && document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(() => {
+          // small delay to ensure font applied
+          setTimeout(() => renderToCanvas(), 80);
+        }).catch(() => {
+          // ignore
+        });
+      }
 
-    // 先绘模板
-    ctx.clearRect(0, 0, naturalW, naturalH)
-    ctx.drawImage(img, 0, 0, naturalW, naturalH)
+      updateScale();
+      setupResizeObservers();
+    };
+    img.onerror = (e) => {
+      console.error('证书模板加载失败：', e);
+    };
+  });
+});
 
-    updateScale()
-    setupResizeObservers()
-  }
-  img.onerror = (e) => {
-    console.error('证书模板加载失败：', e)
-  }
-})
 
 onBeforeUnmount(() => {
   if (debounceTimer) clearTimeout(debounceTimer)
