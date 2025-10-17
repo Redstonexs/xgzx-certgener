@@ -44,7 +44,6 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
-
 // 证书模板图片（Vite 推荐写法）
 const certUrl = new URL('../assets/cert.jpg', import.meta.url).href
 

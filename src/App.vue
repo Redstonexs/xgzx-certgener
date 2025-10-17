@@ -1,46 +1,80 @@
+<!-- src/App.vue -->
 <template>
-  <!-- 直接绑定背景图，避免 document.querySelector 操作 -->
-  <div id="app" :style="bgStyle">
-    <CertificateGenerator />
+  <div id="app" :style="bgStyle" class="app-root">
+    <!-- 顶部标题图片（外置于证书生成器白框之外） -->
+    <header class="app-header" aria-hidden="false" role="banner">
+      <img :src="bannerUrl" alt="学工在线 精彩无限" class="title-banner" />
+    </header>
+
+    <!-- 证书生成器（保持原状） -->
+    <main class="app-main">
+      <CertificateGenerator />
+    </main>
   </div>
 </template>
 
 <script setup>
+import { ref } from 'vue'                       // 必须导入 ref
 import CertificateGenerator from './components/CertificateGenerator.vue'
-import pageBg from './assets/bg2.jpg' // 确保文件存在于 src/assets
+import pageBg from './assets/bg2.jpg'
+import bannerImg from './assets/title.png'
 
-// 绑定背景样式（保证 cover，无白边）
+// 简单背景样式（保持你原来想要的 cover 行为）
 const bgStyle = {
   backgroundImage: `url(${pageBg})`,
   backgroundSize: 'cover',
   backgroundPosition: 'center center',
   backgroundRepeat: 'no-repeat',
-  minHeight: '100vh',
+  minHeight: '120vh',
   width: '100%',
   display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'flex-start', // 改为 flex-start 避免居中压缩
-  padding: '20px 0' // 添加上下内边距
+  flexDirection: 'column',
+  alignItems: 'center',
+  padding: '18px 0'
 }
+
+const bannerUrl = bannerImg
+const bannerRef = ref(null)
 </script>
 
-<!-- 不要用 scoped，这里希望背景样式能全局生效 -->
 <style>
-* {
+/* 基本重置及容器对齐（保持轻量） */
+* { box-sizing: border-box; }
+html, body, #app { height: 100%; margin: 0; padding: 0; }
+
+/* 顶部标题：居中、保留一点底部间距 */
+.app-header {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 12px 8px;
+  pointer-events: none; /* 不需要交互 */
+}
+
+/* 标题图片：居中、响应式、不超过一定宽度 */
+.title-banner {
+  width: min(92%, 720px);
+  max-width: 100%;
+  height: auto;
+  display: block;
+  user-select: none;
+  -webkit-user-drag: none;
+  border-radius: 6px; /* 可去掉，如果你不想圆角 */
+}
+
+/* 主体保持默认（你的 CertificateGenerator 自己有白框样式） */
+.app-main {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 8px 12px 40px;
   box-sizing: border-box;
 }
 
-html, body, #app {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  width: 100%;
-}
-
-#app {
-  display: flex;
-  justify-content: center;
-  align-items: flex-start; /* 改为顶部对齐 */
-  overflow-y: auto; /* 允许垂直滚动 */
+/* 移动端微调 */
+@media (max-width: 720px) {
+  .title-banner { width: min(94%, 640px); border-radius: 4px; }
+  .app-main { padding: 6px 8px 28px; }
 }
 </style>
